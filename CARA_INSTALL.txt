@@ -1,0 +1,92 @@
+================================================================
+   REDLINE Smart Speed Monitor — CARA INSTALL DI XAMPP
+================================================================
+
+MASALAH YANG SUDAH DIPERBAIKI:
+✅ Error "Access denied for user 'root'@'localhost' (using password: NO)"
+✅ Routing berantakan - tidak bisa navigasi dari index
+✅ Logout tidak berfungsi (mengarah ke app.php bukan logout.php)
+✅ Tabel 'violations' tidak ada (sekarang pakai speed_logs)
+✅ mqtt-config.php isinya logout (sudah diperbaiki)
+
+================================================================
+LANGKAH 1: PERBAIKI PASSWORD MYSQL
+================================================================
+
+OPSI A - MySQL tanpa password (paling umum di XAMPP baru):
+  • Buka phpMyAdmin → pilih user "root" → ubah password jadi kosong
+
+OPSI B - Buka setup.php di browser untuk auto-detect:
+  http://192.168.6.10/redline/setup.php
+  → Klik "Pakai Konfigurasi Ini & Simpan"
+
+OPSI C - Edit manual:
+  Buka: config/koneksi.php
+  Ubah baris: $pass = '';
+  Jadi misalnya: $pass = 'root'; (atau password MySQL kamu)
+
+================================================================
+LANGKAH 2: IMPORT DATABASE
+================================================================
+
+1. Buka phpMyAdmin: http://localhost/phpmyadmin
+2. Klik "Import" di menu atas
+3. Pilih file: config/db_setup.sql
+4. Klik "Import/Go"
+5. Database redline_db + semua tabel akan dibuat otomatis
+
+================================================================
+LANGKAH 3: COPY KE HTDOCS
+================================================================
+
+Copy folder "redline" ke:
+  C:\xampp\htdocs\redline\
+
+Struktur akhir:
+  C:\xampp\htdocs\redline\index.php
+  C:\xampp\htdocs\redline\pages\login.php
+  C:\xampp\htdocs\redline\config\koneksi.php
+  ... dst
+
+================================================================
+LANGKAH 4: AKSES DI BROWSER
+================================================================
+
+URL Landing Page : http://192.168.6.10/redline/
+URL Login        : http://192.168.6.10/redline/pages/login.php
+URL Setup        : http://192.168.6.10/redline/setup.php (jika ada masalah)
+
+LOGIN DEFAULT:
+  Username : admin    | Password : password
+  Username : operator | Password : password
+
+================================================================
+ALUR NAVIGASI:
+================================================================
+
+index.php
+  ↓ (tombol Login)
+pages/login.php
+  ↓ (login berhasil)
+pages/dashboard.php
+  ↓ (sidebar navigasi)
+  ├── pages/live-monitor.php
+  ├── pages/riwayat.php
+  ├── pages/pelanggaran.php
+  ├── pages/pengaturan.php
+  ├── pages/mqtt_config.php
+  ├── pages/profile.php
+  ├── pages/pengguna.php  (admin only)
+  ├── pages/export.php
+  └── pages/logout.php → kembali ke login
+
+================================================================
+JIKA MASIH ADA ERROR:
+================================================================
+
+1. Pastikan XAMPP: Apache ✅ ON, MySQL ✅ ON
+2. Cek password MySQL di phpMyAdmin
+3. Buka http://192.168.6.10/redline/setup.php untuk diagnosa
+4. Pastikan database redline_db sudah diimport
+
+================================================================

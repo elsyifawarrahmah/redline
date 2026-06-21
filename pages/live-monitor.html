@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>REDLINE | Live Monitor - ESP32-CAM Integration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0f;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        /* Cyber Background */
+        .cyber-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -3;
+            background: radial-gradient(ellipse at 30% 40%, rgba(220,38,38,0.15) 0%, transparent 60%),
+                        linear-gradient(135deg, #0a0a0f 0%, #0d111a 100%);
+        }
+        .cyber-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            background-image: linear-gradient(rgba(220,38,38,0.06) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(220,38,38,0.06) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+        }
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+        .neon-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            animation: orbFloat 15s infinite ease-in-out;
+        }
+        .orb-1 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(220,38,38,0.2), transparent); top: -150px; left: -150px; }
+        .orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(220,38,38,0.15), transparent); bottom: -200px; right: -200px; animation-delay: -5s; }
+        @keyframes orbFloat {
+            0%,100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+            50% { transform: translate(30px, -30px) scale(1.1); opacity: 0.7; }
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 280px;
+            background: rgba(8,10,18,0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(220,38,38,0.3);
+            z-index: 100;
+            transition: all 0.3s;
+            overflow-y: auto;
+        }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+        .sidebar::-webkit-scrollbar-thumb { background: #dc2626; border-radius: 4px; }
+        .sidebar-header {
+            padding: 28px 24px;
+            border-bottom: 1px solid rgba(220,38,38,0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sidebar-header img { height: 45px; width: auto; filter: drop-shadow(0 0 12px rgba(220,38,38,0.5)); }
+        .sidebar-header .logo-text {
+            font-family: 'Orbitron', monospace;
+            font-size: 22px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, #dc2626);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .sidebar-nav { padding: 24px 16px; }
+        .nav-section {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.35);
+            margin: 20px 0 12px 12px;
+        }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 16px;
+            margin: 6px 0;
+            border-radius: 14px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: rgba(220,38,38,0.12);
+            color: #dc2626;
+            transform: translateX(5px);
+        }
+        .sidebar-link i { width: 24px; font-size: 18px; }
+        .live-badge {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            color: white;
+            font-size: 9px;
+            padding: 2px 10px;
+            border-radius: 20px;
+            margin-left: auto;
+            animation: badgePulse 1s infinite;
+        }
+        @keyframes badgePulse {
+            0%,100% { opacity: 0.8; }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+        .sidebar-user {
+            margin: 24px 16px;
+            padding: 16px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid rgba(220,38,38,0.15);
+        }
+        .user-avatar {
+            width: 46px;
+            height: 46px;
+            background: linear-gradient(135deg, #dc2626, #7f1d1d);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .user-info h6 { font-size: 14px; font-weight: 600; margin: 0; }
+        .user-info p { font-size: 10px; color: rgba(255,255,255,0.5); margin: 0; }
+        .logout-btn { color: rgba(255,255,255,0.35); transition: 0.3s; }
+        .logout-btn:hover { color: #dc2626; }
+
+        /* MAIN CONTENT */
+        .main-content { margin-left: 280px; padding: 28px 32px; min-height: 100vh; }
+
+        /* TOPBAR */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(220,38,38,0.2);
+        }
+        .page-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, #dc2626);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .conn-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.4);
+            padding: 8px 24px;
+            border-radius: 40px;
+            border: 1px solid rgba(220,38,38,0.3);
+        }
+        .conn-dot {
+            width: 10px;
+            height: 10px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulseDot 1.5s infinite;
+        }
+        @keyframes pulseDot {
+            0%,100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        .clock {
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            background: rgba(0,0,0,0.4);
+            padding: 8px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(220,38,38,0.2);
+        }
+
+        /* LIVE CARD */
+        .live-card {
+            background: rgba(12,14,22,0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 28px;
+            padding: 32px;
+            text-align: center;
+            border: 1px solid rgba(220,38,38,0.25);
+        }
+        .live-speed {
+            font-size: 96px;
+            font-weight: 800;
+            font-family: 'Orbitron', monospace;
+            color: #dc2626;
+            text-shadow: 0 0 20px rgba(220,38,38,0.5);
+        }
+        .led-indicator {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            transition: all 0.3s;
+        }
+        .led-warning {
+            background: rgba(245,158,11,0.15);
+            border: 3px solid #f59e0b;
+            box-shadow: 0 0 20px rgba(245,158,11,0.3);
+        }
+        .led-safe {
+            background: rgba(34,197,94,0.15);
+            border: 3px solid #22c55e;
+            box-shadow: 0 0 20px rgba(34,197,94,0.3);
+        }
+        .led-danger {
+            background: rgba(220,38,38,0.15);
+            border: 3px solid #dc2626;
+            box-shadow: 0 0 20px rgba(220,38,38,0.4);
+            animation: ledBlink 0.5s infinite;
+        }
+        @keyframes ledBlink {
+            0%,100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* CARD */
+        .card-glass {
+            background: rgba(12,14,22,0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 24px;
+            border: 1px solid rgba(220,38,38,0.15);
+        }
+        .card-header {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(220,38,38,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-header i { color: #dc2626; margin-right: 10px; }
+
+        /* ESP32-CAM FEED */
+        .cam-feed {
+            background: rgba(0,0,0,0.5);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(220,38,38,0.2);
+        }
+        .cam-placeholder {
+            background: linear-gradient(135deg, #1a1a2e, #0a0a0f);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            border: 1px dashed rgba(220,38,38,0.3);
+        }
+        .cam-placeholder i { font-size: 48px; color: #dc2626; margin-bottom: 16px; }
+        .cam-image {
+            width: 100%;
+            border-radius: 16px;
+            max-height: 300px;
+            object-fit: cover;
+            border: 1px solid rgba(220,38,38,0.3);
+        }
+
+        /* MQTT STREAM */
+        .mqtt-stream {
+            background: rgba(0,0,0,0.3);
+            padding: 16px;
+            border-radius: 16px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #22c55e;
+            border: 1px solid rgba(220,38,38,0.15);
+        }
+
+        /* STATS */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .stat-label { color: rgba(255,255,255,0.5); }
+        .stat-value { font-weight: 700; color: white; }
+        .stat-value.danger { color: #dc2626; }
+
+        .footer {
+            text-align: center;
+            padding: 24px;
+            margin-top: 32px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.3);
+            border-top: 1px solid rgba(220,38,38,0.15);
+        }
+        .footer span { color: #dc2626; font-weight: 600; }
+
+        @media (max-width: 992px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 20px; }
+            .live-speed { font-size: 60px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- BACKGROUND -->
+<div class="cyber-bg"></div>
+<div class="cyber-grid"></div>
+<div class="neon-orb orb-1"></div>
+<div class="neon-orb orb-2"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <img src="../images/99+ REDLINE LOGO - ORI.png" alt="REDLINE" id="logoImg">
+        <div class="logo-text">REDLINE</div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">MAIN MENU</div>
+        <a href="dashboard.html" class="sidebar-link"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
+        <a href="live-monitor.html" class="sidebar-link active"><i class="fas fa-video"></i><span>Live Monitor</span><span class="live-badge">LIVE</span></a>
+        <a href="riwayat.html" class="sidebar-link"><i class="fas fa-history"></i><span>Riwayat</span></a>
+        <a href="pelanggaran.html" class="sidebar-link"><i class="fas fa-gavel"></i><span>Pelanggaran</span></a>
+        <div class="nav-section">MANAGEMENT</div>
+        <a href="pengaturan.html" class="sidebar-link"><i class="fas fa-sliders-h"></i><span>Batas Kecepatan</span></a>
+        <a href="pengguna.html" class="sidebar-link"><i class="fas fa-users"></i><span>Pengguna</span></a>
+        <a href="profile.html" class="sidebar-link"><i class="fas fa-user-cog"></i><span>Profil Saya</span></a>
+        <div class="nav-section">REPORTS</div>
+        <a href="export.html" class="sidebar-link"><i class="fas fa-file-export"></i><span>Export Data</span></a>
+    </nav>
+    <div class="sidebar-user">
+        <div class="user-avatar"><i class="fas fa-user-astronaut"></i></div>
+        <div class="user-info">
+            <h6 id="userName">Admin</h6>
+            <p id="userRole">Administrator</p>
+        </div>
+        <a href="login.html" class="logout-btn" onclick="localStorage.removeItem('rl_user')"><i class="fas fa-sign-out-alt"></i></a>
+    </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main-content" id="mainContent">
+    <div class="topbar">
+        <div class="page-title">🎥 LIVE MONITOR</div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="conn-status">
+                <span class="conn-dot"></span>
+                <span>MQTT • STANDBY</span>
+            </div>
+            <div class="clock" id="clock"></div>
+        </div>
+    </div>
+
+    <!-- WELCOME -->
+    <div class="card-glass mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h4 class="fw-bold"><i class="fas fa-video me-2 text-danger"></i> ESP32-CAM LIVE STREAM</h4>
+                <p class="mb-0 text-white-50">Pantau kecepatan dan foto pelanggaran secara real-time</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-sm" style="background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.4); color: #dc2626; border-radius: 30px; padding: 8px 20px;" onclick="document.getElementById('sidebar').classList.toggle('mobile-open')">
+                    <i class="fas fa-bars me-2"></i> NAVIGATION
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- KOLOM KIRI - SPEED GAUGE & LED -->
+        <div class="col-lg-6">
+            <div class="live-card">
+                <div class="led-indicator led-warning" id="ledIndicator"></div>
+                <div class="live-speed" id="liveSpeed">---</div>
+                <div class="text-white-50 mb-2">KILOMETER PER JAM</div>
+                <div><span class="badge" id="statusBadge" style="background: rgba(245,158,11,0.2); color: #f59e0b; padding: 8px 24px; border-radius: 30px;">● MENUNGGU DATA</span></div>
+                <div class="mt-3 text-white-50">Batas Kecepatan: <strong id="limitDisplay" style="color: #dc2626;">60</strong> km/h</div>
+                <a href="pengaturan.html" class="btn btn-sm mt-3 rounded-pill px-4" style="background: rgba(220,38,38,0.12); border: 1px solid rgba(220,38,38,0.3); color: #dc2626;">
+                    <i class="fas fa-edit me-1"></i> UBAH BATAS
+                </a>
+            </div>
+        </div>
+
+        <!-- KOLOM KANAN - MQTT & STATS -->
+        <div class="col-lg-6">
+            <div class="card-glass">
+                <div class="card-header">
+                    <span><i class="fas fa-broadcast-tower"></i> MQTT STREAM</span>
+                    <span class="small text-white-50">Real-time</span>
+                </div>
+                <div class="mqtt-stream" id="mqttStream">
+                    <i class="fas fa-circle-notch fa-spin me-2"></i> Menunggu data dari ESP32-CAM...
+                </div>
+                <hr style="border-color: rgba(220,38,38,0.15);">
+                <h6 class="fw-bold mb-3"><i class="fas fa-chart-simple me-2 text-danger"></i> STATISTIK HARI INI</h6>
+                <div class="stat-row"><span class="stat-label">🏁 Kecepatan Maksimum</span><span class="stat-value" id="maxSpeed">0</span> km/h</div>
+                <div class="stat-row"><span class="stat-label">📊 Kecepatan Rata-rata</span><span class="stat-value" id="avgSpeed">0</span> km/h</div>
+                <div class="stat-row"><span class="stat-label">🚨 Pelanggaran</span><span class="stat-value danger" id="violCount">0</span></div>
+                <div class="stat-row"><span class="stat-label">🚗 Total Kendaraan</span><span class="stat-value" id="totalCount">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ESP32-CAM FEED - FOTO PELANGGARAN -->
+    <div class="row g-4 mt-2">
+        <div class="col-12">
+            <div class="card-glass">
+                <div class="card-header">
+                    <span><i class="fas fa-camera"></i> ESP32-CAM CAPTURE</span>
+                    <span class="small text-white-50">Foto pelanggaran akan muncul di sini</span>
+                </div>
+                <div class="cam-feed" id="camFeed">
+                    <div class="cam-placeholder" id="camPlaceholder">
+                        <i class="fas fa-camera"></i>
+                        <h6>Menunggu Capture dari ESP32-CAM</h6>
+                        <small class="text-white-50">Foto akan muncul saat pelanggaran terdeteksi</small>
+                    </div>
+                    <img id="camImage" class="cam-image" style="display: none;" alt="Capture">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANDUAN -->
+    <div class="row g-4 mt-2">
+        <div class="col-12">
+            <div class="card-glass">
+                <div class="card-header">
+                    <span><i class="fas fa-microchip"></i> INFORMASI KONEKSI ESP32-CAM</span>
+                    <span class="small text-white-50">MQTT Configuration</span>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="stat-row"><span class="stat-label">📡 MQTT Broker</span><span class="stat-value">broker.emqx.io:1883</span></div>
+                        <div class="stat-row"><span class="stat-label">📁 Topic</span><span class="stat-value">redline/speed/data</span></div>
+                        <div class="stat-row"><span class="stat-label">📄 Format Data</span><span class="stat-value">{"speed": 75, "plate": "B 1234 XYZ"}</span></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="stat-row"><span class="stat-label">📸 Foto Format</span><span class="stat-value">Base64 / URL</span></div>
+                        <div class="stat-row"><span class="stat-label">⚡ Update Rate</span><span class="stat-value">Setiap deteksi pelanggaran</span></div>
+                        <div class="stat-row"><span class="stat-label">🔗 Status</span><span class="stat-value warning" id="camStatus">Menunggu Koneksi</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <i class="fas fa-microchip me-1"></i> <span>Kelompok 1</span> | 99+ REDLINE Smart Speed Monitor IoT | Teknik Komputer 2A
+    </div>
+</main>
+
+<script>
+    // ========================================
+    // SESSION CHECK
+    // ========================================
+    const session = JSON.parse(localStorage.getItem('rl_user') || 'null');
+    if (!session) window.location.href = 'login.html';
+    
+    document.getElementById('userName').innerHTML = session.username;
+    document.getElementById('userRole').innerHTML = session.role === 'admin' ? 'Administrator' : (session.role === 'operator' ? 'Operator' : 'Viewer');
+    document.getElementById('limitDisplay').innerHTML = localStorage.getItem('rl_speed_limit') || '60';
+    
+    // ========================================
+    // CLOCK
+    // ========================================
+    setInterval(() => {
+        document.getElementById('clock').innerHTML = new Date().toLocaleTimeString('id-ID');
+    }, 1000);
+    
+    // ========================================
+    // LOGO ERROR HANDLER
+    // ========================================
+    const logoImg = document.getElementById('logoImg');
+    if (logoImg) logoImg.onerror = function() { this.style.display = 'none'; };
+    
+    // ========================================
+    // STATISTIK VARIABLES
+    // ========================================
+    let maxSpeed = 0;
+    let sumSpeed = 0;
+    let count = 0;
+    let violations = 0;
+    
+    // ========================================
+    // UPDATE STATISTIK
+    // ========================================
+    function updateStats(speed, isViolation) {
+        count++;
+        sumSpeed += speed;
+        if (speed > maxSpeed) maxSpeed = speed;
+        if (isViolation) violations++;
+        
+        document.getElementById('maxSpeed').innerHTML = maxSpeed;
+        document.getElementById('avgSpeed').innerHTML = Math.round(sumSpeed / count);
+        document.getElementById('violCount').innerHTML = violations;
+        document.getElementById('totalCount').innerHTML = count;
+    }
+    
+    // ========================================
+    // RECEIVE DATA FROM ESP32-CAM
+    // ========================================
+    window.receiveLiveData = function(speed, plate, imageBase64 = null) {
+        const speedLimit = parseInt(localStorage.getItem('rl_speed_limit') || '60');
+        const isViolation = speed > speedLimit;
+        
+        // Update Speed Display
+        document.getElementById('liveSpeed').innerHTML = speed;
+        
+        // Update LED & Badge
+        const led = document.getElementById('ledIndicator');
+        const badge = document.getElementById('statusBadge');
+        
+        if (isViolation) {
+            led.className = 'led-indicator led-danger';
+            badge.innerHTML = '⚠️ PELANGGARAN!';
+            badge.style.background = 'rgba(220,38,38,0.2)';
+            badge.style.color = '#dc2626';
+            
+            // Update MQTT Stream
+            document.getElementById('mqttStream').innerHTML = `🚨 PELANGGARAN! { "speed": ${speed}, "plate": "${plate}", "status": "VIOLATION", "time": "${new Date().toLocaleTimeString()}" }`;
+            
+            // Show Camera Capture if available
+            if (imageBase64) {
+                const camImage = document.getElementById('camImage');
+                const camPlaceholder = document.getElementById('camPlaceholder');
+                camImage.src = imageBase64;
+                camImage.style.display = 'block';
+                camPlaceholder.style.display = 'none';
+                document.getElementById('camStatus').innerHTML = '📸 Capture Berhasil';
+                document.getElementById('camStatus').style.color = '#22c55e';
+                
+                // Reset after 10 seconds
+                setTimeout(() => {
+                    if (camImage.style.display === 'block') {
+                        // Keep image but show placeholder after new capture
+                    }
+                }, 10000);
+            } else {
+                // Simulasi capture
+                const camImage = document.getElementById('camImage');
+                const camPlaceholder = document.getElementById('camPlaceholder');
+                camImage.src = `https://picsum.photos/id/${Math.floor(Math.random() * 100) + 1}/600/400`;
+                camImage.style.display = 'block';
+                camPlaceholder.style.display = 'none';
+                document.getElementById('camStatus').innerHTML = '📸 Simulasi Capture';
+                setTimeout(() => {
+                    document.getElementById('camStatus').innerHTML = 'Menunggu Koneksi';
+                    document.getElementById('camStatus').style.color = '#f59e0b';
+                }, 5000);
+            }
+        } else {
+            led.className = 'led-indicator led-safe';
+            badge.innerHTML = '● AMAN';
+            badge.style.background = 'rgba(34,197,94,0.2)';
+            badge.style.color = '#22c55e';
+            document.getElementById('mqttStream').innerHTML = `✅ Data normal: { "speed": ${speed}, "plate": "${plate}", "status": "SAFE", "time": "${new Date().toLocaleTimeString()}" }`;
+        }
+        
+        // Update Statistics
+        updateStats(speed, isViolation);
+        
+        // Update Camera Status Text
+        if (isViolation) {
+            document.getElementById('camStatus').innerHTML = '📸 Capture - Foto Tersimpan';
+            document.getElementById('camStatus').style.color = '#22c55e';
+            setTimeout(() => {
+                if (document.getElementById('camStatus').innerHTML.includes('Capture')) {
+                    document.getElementById('camStatus').innerHTML = 'Menunggu Koneksi';
+                    document.getElementById('camStatus').style.color = '#f59e0b';
+                }
+            }, 5000);
+        }
+        
+        console.log(`📡 Data received: ${speed} km/h - ${plate} - ${isViolation ? 'VIOLATION' : 'SAFE'}`);
+    };
+    
+    // ========================================
+    // SIMULASI DATA UNTUK DEMO (HAPUS NANTI)
+    // ========================================
+    let demoInterval = null;
+    function startDemo() {
+        if (demoInterval) clearInterval(demoInterval);
+        demoInterval = setInterval(() => {
+            const speed = Math.floor(Math.random() * 120) + 20;
+            const plates = ['B 1234 XYZ', 'D 5678 ABC', 'F 9012 KDR', 'BM 3456 RED', 'BA 7890 LNE'];
+            const plate = plates[Math.floor(Math.random() * plates.length)];
+            receiveLiveData(speed, plate);
+        }, 5000);
+    }
+    // startDemo(); // Uncomment untuk demo, comment saat pakai hardware
+    
+    console.log('🎥 LIVE MONITOR READY - Menunggu data dari ESP32-CAM');
+    console.log('📡 Format data: receiveLiveData(speed, plate, imageBase64)');
+    console.log('📸 Foto akan muncul saat pelanggaran terdeteksi');
+</script>
+</body>
+</html>

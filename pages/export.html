@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Export Data - REDLINE</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+        }
+
+        .bg-glow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            background: radial-gradient(ellipse at 30% 40%, rgba(220,38,38,0.15) 0%, transparent 60%),
+                        linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 280px;
+            background: rgba(13,17,23,0.95);
+            backdrop-filter: blur(16px);
+            border-right: 1px solid rgba(220,38,38,0.3);
+            z-index: 100;
+            transition: all 0.3s;
+            overflow-y: auto;
+        }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+        .sidebar::-webkit-scrollbar-thumb { background: #dc2626; border-radius: 4px; }
+        .sidebar-header {
+            padding: 28px 24px;
+            border-bottom: 1px solid rgba(220,38,38,0.25);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sidebar-header img { height: 45px; width: auto; filter: drop-shadow(0 0 12px rgba(220,38,38,0.4)); }
+        .sidebar-header .logo-text {
+            font-size: 22px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, #dc2626);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .sidebar-nav { padding: 24px 16px; }
+        .nav-section {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255,255,255,0.4);
+            margin: 20px 0 12px 12px;
+        }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 16px;
+            margin: 6px 0;
+            border-radius: 12px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: rgba(220,38,38,0.15);
+            color: #dc2626;
+            transform: translateX(5px);
+        }
+        .sidebar-link i { width: 24px; font-size: 18px; }
+        .sidebar-user {
+            margin: 24px 16px;
+            padding: 16px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid rgba(220,38,38,0.15);
+        }
+        .user-avatar {
+            width: 46px;
+            height: 46px;
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .user-info h6 { font-size: 14px; font-weight: 600; margin: 0; }
+        .user-info p { font-size: 10px; color: rgba(255,255,255,0.5); margin: 0; }
+        .logout-btn { color: rgba(255,255,255,0.4); transition: 0.3s; }
+        .logout-btn:hover { color: #dc2626; }
+
+        /* MAIN CONTENT */
+        .main-content { margin-left: 280px; padding: 28px 32px; min-height: 100vh; }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(220,38,38,0.2);
+        }
+        .page-title {
+            font-size: 26px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff, #dc2626);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .clock {
+            font-family: monospace;
+            font-size: 14px;
+            background: rgba(0,0,0,0.4);
+            padding: 8px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(220,38,38,0.2);
+        }
+
+        /* CARD */
+        .card-glass {
+            background: rgba(22,27,34,0.8);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 24px;
+            border: 1px solid rgba(220,38,38,0.2);
+            height: 100%;
+        }
+        .card-header {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(220,38,38,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-header i { color: #dc2626; margin-right: 10px; }
+
+        /* FORM */
+        .form-control, .form-select {
+            background: rgba(13,17,23,0.9);
+            border: 1px solid rgba(220,38,38,0.25);
+            color: #ffffff;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220,38,38,0.2);
+        }
+        .form-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 8px;
+        }
+
+        /* BUTTON */
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(220,38,38,0.4);
+        }
+        .btn-outline-custom {
+            background: transparent;
+            border: 1px solid #dc2626;
+            color: #dc2626;
+            padding: 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-outline-custom:hover {
+            background: #dc2626;
+            color: white;
+        }
+
+        /* TABLE PREVIEW */
+        .preview-table { width: 100%; }
+        .preview-table th {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+            padding: 12px 8px;
+            border-bottom: 1px solid rgba(220,38,38,0.2);
+        }
+        .preview-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 13px;
+        }
+        .badge-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-status.safe { background: rgba(34,197,94,0.15); color: #22c55e; }
+        .badge-status.danger { background: rgba(220,38,38,0.15); color: #dc2626; }
+
+        .info-box {
+            background: rgba(255,255,255,0.04);
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 20px;
+            border: 1px solid rgba(220,38,38,0.15);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 24px;
+            margin-top: 32px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.35);
+            border-top: 1px solid rgba(220,38,38,0.15);
+        }
+        .footer span { color: #dc2626; font-weight: 600; }
+
+        @media (max-width: 992px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <img src="../images/99+ REDLINE LOGO - ORI.png" alt="REDLINE" id="logoImg">
+        <div class="logo-text">REDLINE</div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">MAIN MENU</div>
+        <a href="dashboard.html" class="sidebar-link"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
+        <a href="live-monitor.html" class="sidebar-link"><i class="fas fa-video"></i><span>Live Monitor</span></a>
+        <a href="riwayat.html" class="sidebar-link"><i class="fas fa-history"></i><span>Riwayat</span></a>
+        <a href="pelanggaran.html" class="sidebar-link"><i class="fas fa-gavel"></i><span>Pelanggaran</span></a>
+        <div class="nav-section">MANAGEMENT</div>
+        <a href="pengaturan.html" class="sidebar-link"><i class="fas fa-sliders-h"></i><span>Batas Kecepatan</span></a>
+        <a href="pengguna.html" class="sidebar-link"><i class="fas fa-users"></i><span>Pengguna</span></a>
+        <a href="profile.html" class="sidebar-link"><i class="fas fa-user-cog"></i><span>Profil Saya</span></a>
+        <div class="nav-section">REPORTS</div>
+        <a href="export.html" class="sidebar-link active"><i class="fas fa-file-export"></i><span>Export Data</span></a>
+    </nav>
+    <div class="sidebar-user">
+        <div class="user-avatar"><i class="fas fa-user"></i></div>
+        <div class="user-info">
+            <h6 id="userName">Admin</h6>
+            <p id="userRole">Administrator</p>
+        </div>
+        <a href="login.html" class="logout-btn" onclick="localStorage.removeItem('rl_user')"><i class="fas fa-sign-out-alt"></i></a>
+    </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main-content" id="mainContent">
+    <div class="topbar">
+        <div class="page-title">📤 Export & Backup Data</div>
+        <div class="clock" id="clock"></div>
+    </div>
+
+    <div class="row g-4">
+        <!-- KOLOM KIRI - EXPORT -->
+        <div class="col-lg-6">
+            <div class="card-glass">
+                <div class="card-header">
+                    <span><i class="fas fa-file-export"></i> Export Laporan</span>
+                </div>
+                <form id="exportForm">
+                    <div class="mb-3">
+                        <label class="form-label">Jenis Laporan</label>
+                        <select class="form-select" id="reportType">
+                            <option value="history">📋 Riwayat Kendaraan</option>
+                            <option value="violations">🚨 Data Pelanggaran</option>
+                            <option value="summary">📊 Ringkasan Statistik</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Dari Tanggal</label>
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Sampai Tanggal</label>
+                            <input type="date" class="form-control" id="endDate">
+                        </div>
+                    </div>
+                    <div class="mt-3 mb-3">
+                        <label class="form-label">Format Export</label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="format" value="csv" id="formatCsv" checked>
+                                <label class="form-check-label">CSV</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="format" value="excel" id="formatExcel">
+                                <label class="form-check-label">Excel</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="format" value="pdf" id="formatPdf">
+                                <label class="form-check-label">PDF</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary-custom">
+                        <i class="fas fa-download me-2"></i> Export Data
+                    </button>
+                </form>
+                <div class="info-box mt-3">
+                    <i class="fas fa-info-circle text-danger me-2"></i>
+                    <strong>Informasi</strong><br>
+                    <small>Data akan diexport sesuai periode yang dipilih. Kosongkan tanggal untuk semua data.</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- KOLOM KANAN - BACKUP & RESTORE -->
+        <div class="col-lg-6">
+            <div class="card-glass">
+                <div class="card-header">
+                    <span><i class="fas fa-database"></i> Backup & Restore</span>
+                </div>
+                <div class="text-center mb-4">
+                    <i class="fas fa-archive fa-3x text-secondary mb-2"></i>
+                    <p class="text-white-50 small">Backup semua konfigurasi sistem termasuk batas kecepatan, pengguna, dan setting MQTT.</p>
+                </div>
+                <button class="btn-primary-custom mb-3" onclick="backupConfig()">
+                    <i class="fas fa-download me-2"></i> Backup Konfigurasi
+                </button>
+                <hr style="border-color: rgba(220,38,38,0.2);">
+                <label class="form-label">Restore Backup</label>
+                <div class="input-group mb-3">
+                    <input type="file" class="form-control" id="restoreFile" accept=".json" style="background: rgba(13,17,23,0.9); border-color: rgba(220,38,38,0.25); color: white;">
+                    <button class="btn btn-outline-danger" onclick="restoreConfig()" type="button">Restore</button>
+                </div>
+                <div class="info-box">
+                    <i class="fas fa-shield-alt text-danger me-2"></i>
+                    <strong>Keamanan Backup</strong><br>
+                    <small>File backup berisi data konfigurasi sensitif. Simpan dengan aman.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PREVIEW DATA -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card-glass">
+                <div class="card-header">
+                    <span><i class="fas fa-eye"></i> Preview Data</span>
+                    <span class="text-white-50 small">10 data terbaru</span>
+                </div>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table class="preview-table">
+                        <thead>
+                            <tr><th>No</th><th>Waktu</th><th>Plat Nomor</th><th>Kecepatan</th><th>Status</th></tr>
+                        </thead>
+                        <tbody id="previewTableBody">
+                            <tr><td colspan="5" class="text-center py-4">Memuat preview...</td</tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <i class="fas fa-microchip me-1"></i> <span>Kelompok 1</span> | 99+ REDLINE Smart Speed Monitor IoT | Teknik Komputer 2A
+    </div>
+</main>
+
+<script>
+    const session = JSON.parse(localStorage.getItem('rl_user') || 'null');
+    if (!session) window.location.href = 'login.html';
+    
+    document.getElementById('userName').innerHTML = session.username;
+    document.getElementById('userRole').innerHTML = session.role === 'admin' ? 'Administrator' : (session.role === 'operator' ? 'Operator' : 'Viewer');
+    
+    setInterval(() => {
+        document.getElementById('clock').innerHTML = new Date().toLocaleTimeString('id-ID');
+    }, 1000);
+    
+    const logoImg = document.getElementById('logoImg');
+    if (logoImg) logoImg.onerror = function() { this.style.display = 'none'; };
+    
+    // PREVIEW DATA
+    const plates = ['B 1234 XYZ', 'D 5678 ABC', 'F 9012 KDR', 'BM 3456 RED', 'BA 7890 LNE'];
+    let previewData = [];
+    for (let i = 0; i < 10; i++) {
+        previewData.push({
+            no: i+1,
+            waktu: new Date(Date.now() - i * 3600000).toLocaleString(),
+            plat: plates[Math.floor(Math.random() * plates.length)],
+            kecepatan: Math.floor(Math.random() * 60) + 40,
+            status: Math.random() > 0.7 ? 'LANGGAR' : 'AMAN'
+        });
+    }
+    
+    function renderPreview() {
+        const tbody = document.getElementById('previewTableBody');
+        tbody.innerHTML = previewData.map(item => `
+            <tr>
+                <td>${item.no}</td>
+                <td>${item.waktu}</td>
+                <td><strong>${item.plat}</strong></td>
+                <td class="${item.status === 'LANGGAR' ? 'text-danger fw-bold' : ''}">${item.kecepatan} km/h</td>
+                <td><span class="badge-status ${item.status === 'LANGGAR' ? 'danger' : 'safe'}">${item.status}</span></td>
+            </tr>
+        `).join('');
+    }
+    renderPreview();
+    
+    // EXPORT
+    document.getElementById('exportForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const type = document.getElementById('reportType').value;
+        const start = document.getElementById('startDate').value || 'Semua';
+        const end = document.getElementById('endDate').value || 'Semua';
+        const format = document.querySelector('input[name="format"]:checked').value;
+        const btn = e.target.querySelector('button[type="submit"]');
+        
+        let typeName = type === 'history' ? 'Riwayat Kendaraan' : (type === 'violations' ? 'Data Pelanggaran' : 'Ringkasan Statistik');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Memproses...';
+        
+        setTimeout(() => {
+            if (format === 'csv') {
+                let csv = "No,Waktu,Plat Nomor,Kecepatan (km/h),Status\n";
+                previewData.forEach(item => {
+                    csv += `${item.no},${item.waktu},${item.plat},${item.kecepatan},${item.status}\n`;
+                });
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${type}_${new Date().toISOString().slice(0,19)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+                alert(`✅ Export ${typeName} berhasil!\nPeriode: ${start} - ${end}`);
+            } else {
+                alert(`📄 Export ke ${format.toUpperCase()} akan segera tersedia.`);
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-download me-2"></i> Export Data';
+        }, 1000);
+    });
+    
+    // BACKUP
+    function backupConfig() {
+        const config = {
+            speed_limit: localStorage.getItem('rl_speed_limit') || '60',
+            users: localStorage.getItem('rl_users'),
+            mqtt: localStorage.getItem('rl_mqtt_config'),
+            backup_time: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(config, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `redline_backup_${new Date().toISOString().slice(0,19)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert('✅ Backup berhasil dibuat!');
+    }
+    
+    // RESTORE
+    function restoreConfig() {
+        const file = document.getElementById('restoreFile').files[0];
+        if (!file) { alert('❌ Pilih file backup terlebih dahulu!'); return; }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const config = JSON.parse(e.target.result);
+                if (config.speed_limit) localStorage.setItem('rl_speed_limit', config.speed_limit);
+                if (config.users) localStorage.setItem('rl_users', config.users);
+                if (config.mqtt) localStorage.setItem('rl_mqtt_config', config.mqtt);
+                alert('✅ Restore berhasil! Silakan refresh halaman.');
+            } catch(err) { alert('❌ File backup tidak valid!'); }
+        };
+        reader.readAsText(file);
+    }
+</script>
+</body>
+</html>

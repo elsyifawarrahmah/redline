@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>REDLINE | Data Pelanggaran - ESP32-CAM Evidence</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0f;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        /* Cyber Background */
+        .cyber-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -3;
+            background: radial-gradient(ellipse at 30% 40%, rgba(220,38,38,0.15) 0%, transparent 60%),
+                        linear-gradient(135deg, #0a0a0f 0%, #0d111a 100%);
+        }
+        .cyber-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            background-image: linear-gradient(rgba(220,38,38,0.06) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(220,38,38,0.06) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+        }
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 280px;
+            background: rgba(8,10,18,0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(220,38,38,0.3);
+            z-index: 100;
+            transition: all 0.3s;
+            overflow-y: auto;
+        }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+        .sidebar::-webkit-scrollbar-thumb { background: #dc2626; border-radius: 4px; }
+        .sidebar-header {
+            padding: 28px 24px;
+            border-bottom: 1px solid rgba(220,38,38,0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sidebar-header img { height: 45px; width: auto; filter: drop-shadow(0 0 12px rgba(220,38,38,0.5)); }
+        .sidebar-header .logo-text {
+            font-family: 'Orbitron', monospace;
+            font-size: 22px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, #dc2626);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .sidebar-nav { padding: 24px 16px; }
+        .nav-section {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.35);
+            margin: 20px 0 12px 12px;
+        }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 16px;
+            margin: 6px 0;
+            border-radius: 14px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: rgba(220,38,38,0.12);
+            color: #dc2626;
+            transform: translateX(5px);
+        }
+        .sidebar-link i { width: 24px; font-size: 18px; }
+        .sidebar-user {
+            margin: 24px 16px;
+            padding: 16px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid rgba(220,38,38,0.15);
+        }
+        .user-avatar {
+            width: 46px;
+            height: 46px;
+            background: linear-gradient(135deg, #dc2626, #7f1d1d);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .user-info h6 { font-size: 14px; font-weight: 600; margin: 0; }
+        .user-info p { font-size: 10px; color: rgba(255,255,255,0.5); margin: 0; }
+        .logout-btn { color: rgba(255,255,255,0.35); transition: 0.3s; }
+        .logout-btn:hover { color: #dc2626; }
+
+        /* MAIN CONTENT */
+        .main-content { margin-left: 280px; padding: 28px 32px; min-height: 100vh; }
+
+        /* TOPBAR */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(220,38,38,0.2);
+        }
+        .page-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, #dc2626);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .clock {
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            background: rgba(0,0,0,0.4);
+            padding: 8px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(220,38,38,0.2);
+        }
+
+        /* STAT CARDS */
+        .stat-card {
+            background: rgba(12,14,22,0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(220,38,38,0.15);
+            transition: all 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-3px); border-color: rgba(220,38,38,0.4); }
+        .stat-icon { width: 48px; height: 48px; background: rgba(220,38,38,0.12); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+        .stat-icon i { font-size: 22px; color: #dc2626; }
+        .stat-value { font-size: 28px; font-weight: 800; color: white; }
+        .stat-label { font-size: 12px; color: rgba(255,255,255,0.5); }
+
+        /* CARD */
+        .card-glass {
+            background: rgba(12,14,22,0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 24px;
+            border: 1px solid rgba(220,38,38,0.15);
+        }
+        .card-header {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(220,38,38,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-header i { color: #dc2626; margin-right: 10px; }
+
+        /* FILTER SECTION */
+        .filter-section {
+            background: rgba(12,14,22,0.5);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(220,38,38,0.15);
+        }
+        .form-control, .form-select {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(220,38,38,0.2);
+            color: white;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 13px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220,38,38,0.2);
+        }
+        .form-control::placeholder { color: rgba(255,255,255,0.4); }
+        .btn-filter {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-filter:hover { background: #b91c1c; transform: translateY(-2px); }
+        .btn-outline-filter {
+            background: transparent;
+            border: 1px solid rgba(220,38,38,0.4);
+            color: #dc2626;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-outline-filter:hover { background: #dc2626; color: white; }
+
+        /* TABLE */
+        .custom-table { width: 100%; }
+        .custom-table th {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.5);
+            padding: 14px 10px;
+            border-bottom: 1px solid rgba(220,38,38,0.2);
+        }
+        .custom-table td {
+            padding: 14px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 13px;
+            vertical-align: middle;
+        }
+        .custom-table tr:hover td { background: rgba(220,38,38,0.05); }
+        .status-violation {
+            background: rgba(220,38,38,0.15);
+            color: #dc2626;
+            padding: 5px 14px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .photo-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            object-fit: cover;
+            cursor: pointer;
+            border: 1px solid rgba(220,38,38,0.3);
+            transition: all 0.2s;
+        }
+        .photo-preview:hover {
+            transform: scale(1.05);
+            border-color: #dc2626;
+            box-shadow: 0 0 10px rgba(220,38,38,0.3);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: rgba(255,255,255,0.4);
+        }
+        .empty-state i { font-size: 48px; margin-bottom: 16px; }
+
+        /* MODAL FOTO - LEBARAN */
+        .modal-photo { max-width: 600px; }
+        .modal-photo img { width: 100%; border-radius: 16px; }
+        .modal-content { background: #0a0a0f; border: 1px solid rgba(220,38,38,0.3); }
+        .modal-header { border-bottom-color: rgba(220,38,38,0.2); }
+        .detail-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 24px;
+            margin-top: 32px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.3);
+            border-top: 1px solid rgba(220,38,38,0.15);
+        }
+        .footer span { color: #dc2626; font-weight: 600; }
+
+        @media (max-width: 992px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- BACKGROUND -->
+<div class="cyber-bg"></div>
+<div class="cyber-grid"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <img src="../images/99+ REDLINE LOGO - ORI.png" alt="REDLINE" id="logoImg">
+        <div class="logo-text">REDLINE</div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">MAIN MENU</div>
+        <a href="dashboard.html" class="sidebar-link"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
+        <a href="live-monitor.html" class="sidebar-link"><i class="fas fa-video"></i><span>Live Monitor</span></a>
+        <a href="riwayat.html" class="sidebar-link"><i class="fas fa-history"></i><span>Riwayat</span></a>
+        <a href="pelanggaran.html" class="sidebar-link active"><i class="fas fa-gavel"></i><span>Pelanggaran</span></a>
+        <div class="nav-section">MANAGEMENT</div>
+        <a href="pengaturan.html" class="sidebar-link"><i class="fas fa-sliders-h"></i><span>Batas Kecepatan</span></a>
+        <a href="pengguna.html" class="sidebar-link"><i class="fas fa-users"></i><span>Pengguna</span></a>
+        <a href="profile.html" class="sidebar-link"><i class="fas fa-user-cog"></i><span>Profil Saya</span></a>
+        <div class="nav-section">REPORTS</div>
+        <a href="export.html" class="sidebar-link"><i class="fas fa-file-export"></i><span>Export Data</span></a>
+    </nav>
+    <div class="sidebar-user">
+        <div class="user-avatar"><i class="fas fa-user-astronaut"></i></div>
+        <div class="user-info">
+            <h6 id="userName">Admin</h6>
+            <p id="userRole">Administrator</p>
+        </div>
+        <a href="login.html" class="logout-btn" onclick="localStorage.removeItem('rl_user')"><i class="fas fa-sign-out-alt"></i></a>
+    </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main-content" id="mainContent">
+    <div class="topbar">
+        <div class="page-title">🚨 DATA PELANGGARAN</div>
+        <div class="clock" id="clock"></div>
+    </div>
+
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="fw-bold"><i class="fas fa-gavel text-danger me-2"></i> Bukti Pelanggaran Kecepatan</h4>
+            <p class="text-white-50 mb-0">Data pelanggaran dilengkapi foto bukti dari ESP32-CAM</p>
+        </div>
+        <div>
+            <button class="btn-outline-filter me-2" onclick="exportData()"><i class="fas fa-download me-2"></i> Export</button>
+            <button class="btn-filter" onclick="refreshData()"><i class="fas fa-sync-alt me-2"></i> Refresh</button>
+        </div>
+    </div>
+
+    <!-- STATISTIK CARD -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="stat-value" id="totalViolations">0</div>
+                <div class="stat-label">Total Pelanggaran</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-car"></i></div>
+                <div class="stat-value" id="uniquePlates">0</div>
+                <div class="stat-label">Plat Unik</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-tachometer-alt"></i></div>
+                <div class="stat-value" id="avgSpeed">0</div>
+                <div class="stat-label">Rata-rata Kecepatan</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-calendar-week"></i></div>
+                <div class="stat-value" id="thisWeek">0</div>
+                <div class="stat-label">Minggu Ini</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTER SECTION -->
+    <div class="filter-section">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-white-50">🔍 Cari Plat</label>
+                <input type="text" class="form-control" id="searchPlate" placeholder="Masukkan plat nomor...">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold text-white-50">📅 Dari Tanggal</label>
+                <input type="date" class="form-control" id="dateFrom">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold text-white-50">📅 Sampai Tanggal</label>
+                <input type="date" class="form-control" id="dateTo">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold text-white-50">⚡ Min Kecepatan</label>
+                <input type="number" class="form-control" id="minSpeed" placeholder="Min km/h">
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex gap-2">
+                    <button class="btn-outline-filter flex-grow-1" onclick="resetFilter()"><i class="fas fa-undo-alt me-2"></i> Reset</button>
+                    <button class="btn-filter flex-grow-1" onclick="applyFilter()"><i class="fas fa-search me-2"></i> Filter</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLE PELANGGARAN DENGAN FOTO -->
+    <div class="card-glass">
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Waktu</th>
+                        <th>Lokasi</th>
+                        <th>Plat Nomor</th>
+                        <th>Kecepatan</th>
+                        <th>Batas</th>
+                        <th>Selisih</th>
+                        <th>Foto</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="violationTableBody">
+                    <tr class="empty-state">
+                        <td colspan="9">
+                            <i class="fas fa-microchip fa-3x mb-2 d-block"></i>
+                            <h6>Menunggu Data dari ESP32-CAM</h6>
+                            <small class="text-white-50">Foto dan data pelanggaran akan muncul saat sensor mendeteksi kecepatan melebihi batas</small>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <i class="fas fa-microchip me-1"></i> <span>Kelompok 1</span> | 99+ REDLINE Smart Speed Monitor IoT | Teknik Komputer 2A
+    </div>
+</div>
+
+<!-- MODAL DETAIL FOTO - LENGKAP -->
+<div class="modal fade" id="photoModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-photo">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-camera me-2"></i> Bukti Foto Pelanggaran - ESP32-CAM</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalPhoto" src="" alt="Bukti Foto Pelanggaran" style="max-width: 100%; border-radius: 16px; border: 2px solid rgba(220,38,38,0.3);">
+                <div class="detail-card">
+                    <div class="row">
+                        <div class="col-6 text-start">
+                            <small class="text-white-50">🚗 Plat Nomor</small><br>
+                            <strong id="detailPlate" class="text-white">-</strong>
+                        </div>
+                        <div class="col-6 text-start">
+                            <small class="text-white-50">⚡ Kecepatan</small><br>
+                            <strong id="detailSpeed" class="text-danger">-</strong> km/h
+                        </div>
+                        <div class="col-6 text-start mt-2">
+                            <small class="text-white-50">📏 Batas Kecepatan</small><br>
+                            <strong id="detailLimit" class="text-white">-</strong> km/h
+                        </div>
+                        <div class="col-6 text-start mt-2">
+                            <small class="text-white-50">📊 Selisih</small><br>
+                            <strong id="detailDiff" class="text-warning">-</strong> km/h
+                        </div>
+                        <div class="col-12 text-start mt-2">
+                            <small class="text-white-50">🕐 Waktu Kejadian</small><br>
+                            <strong id="detailTime" class="text-white">-</strong>
+                        </div>
+                        <div class="col-12 text-start mt-2">
+                            <small class="text-white-50">📍 Lokasi</small><br>
+                            <strong id="detailLocation" class="text-white">-</strong>
+                        </div>
+                        <div class="col-12 text-start mt-2">
+                            <small class="text-white-50">📸 Sumber Foto</small><br>
+                            <strong class="text-info">ESP32-CAM Capture</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal">Tutup</button>
+                <button class="btn btn-sm btn-danger" onclick="downloadPhoto()"><i class="fas fa-download me-1"></i> Download Foto</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // ========================================
+    // SESSION CHECK
+    // ========================================
+    const session = JSON.parse(localStorage.getItem('rl_user') || 'null');
+    if (!session) window.location.href = 'login.html';
+    
+    document.getElementById('userName').innerHTML = session.username;
+    document.getElementById('userRole').innerHTML = session.role === 'admin' ? 'Administrator' : (session.role === 'operator' ? 'Operator' : 'Viewer');
+    
+    // ========================================
+    // CLOCK
+    // ========================================
+    setInterval(() => {
+        document.getElementById('clock').innerHTML = new Date().toLocaleTimeString('id-ID');
+    }, 1000);
+    
+    // ========================================
+    // LOGO ERROR HANDLER
+    // ========================================
+    const logoImg = document.getElementById('logoImg');
+    if (logoImg) logoImg.onerror = function() { this.style.display = 'none'; };
+    
+    // ========================================
+    // DATA PELANGGARAN (KOSONG - TUNGGU ESP32)
+    // ========================================
+    let violationsData = [];
+    let filteredData = [];
+    let speedLimit = parseInt(localStorage.getItem('rl_speed_limit') || '60');
+    let currentDetail = null;
+    
+    // Dummy image placeholder
+    const dummyImages = [
+        'https://picsum.photos/id/100/600/400',
+        'https://picsum.photos/id/101/600/400',
+        'https://picsum.photos/id/102/600/400',
+        'https://picsum.photos/id/103/600/400'
+    ];
+    
+    function updateStatistics() {
+        const total = filteredData.length;
+        const uniquePlates = new Set(filteredData.map(v => v.plate)).size;
+        const avgSpeed = filteredData.length > 0 ? Math.round(filteredData.reduce((s, v) => s + v.speed, 0) / filteredData.length) : 0;
+        const thisWeek = filteredData.filter(v => v.timestamp > Date.now() - (7 * 86400000)).length;
+        
+        document.getElementById('totalViolations').innerHTML = total;
+        document.getElementById('uniquePlates').innerHTML = uniquePlates;
+        document.getElementById('avgSpeed').innerHTML = avgSpeed;
+        document.getElementById('thisWeek').innerHTML = thisWeek;
+    }
+    
+    function renderTable() {
+        const tbody = document.getElementById('violationTableBody');
+        
+        if (filteredData.length === 0) {
+            tbody.innerHTML = `
+                <tr class="empty-state">
+                    <td colspan="9">
+                        <i class="fas fa-check-circle fa-3x mb-2 d-block text-success"></i>
+                        <h6>Belum Ada Data Pelanggaran</h6>
+                        <small class="text-white-50">Semua kendaraan mematuhi batas kecepatan</small>
+                     </td>
+                 </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = filteredData.map((v, idx) => `
+            <tr>
+                <td>${idx + 1}</td>
+                <td>${v.time}</td>
+                <td>${v.location}</td>
+                <td><strong>${v.plate}</strong></td>
+                <td class="text-danger fw-bold">${v.speed} km/h</td>
+                <td>${v.limit} km/h</td>
+                <td class="text-warning">+${v.diff} km/h</td>
+                <td>
+                    <img src="${v.photo}" class="photo-preview" alt="Foto Bukti" onclick="showDetail(${v.id})">
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="showDetail(${v.id})">
+                        <i class="fas fa-eye"></i> Detail
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    function showDetail(id) {
+        const data = filteredData.find(v => v.id === id);
+        if (data) {
+            currentDetail = data;
+            document.getElementById('modalPhoto').src = data.photo;
+            document.getElementById('detailPlate').innerHTML = data.plate;
+            document.getElementById('detailSpeed').innerHTML = data.speed;
+            document.getElementById('detailLimit').innerHTML = data.limit;
+            document.getElementById('detailDiff').innerHTML = `+${data.diff} km/h`;
+            document.getElementById('detailTime').innerHTML = data.time;
+            document.getElementById('detailLocation').innerHTML = data.location;
+            new bootstrap.Modal(document.getElementById('photoModal')).show();
+        }
+    }
+    
+    function downloadPhoto() {
+        if (currentDetail) {
+            const link = document.createElement('a');
+            link.href = currentDetail.photo;
+            link.download = `violation_${currentDetail.plate}_${currentDetail.time.replace(/[\/:, ]/g, '_')}.jpg`;
+            link.click();
+        }
+    }
+    
+    function applyFilter() {
+        let filtered = [...violationsData];
+        const searchPlate = document.getElementById('searchPlate').value.toLowerCase();
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+        const minSpeed = document.getElementById('minSpeed').value;
+        
+        if (searchPlate) filtered = filtered.filter(v => v.plate.toLowerCase().includes(searchPlate));
+        if (dateFrom) filtered = filtered.filter(v => v.timestamp >= new Date(dateFrom).getTime());
+        if (dateTo) filtered = filtered.filter(v => v.timestamp <= new Date(dateTo).getTime() + 86400000);
+        if (minSpeed) filtered = filtered.filter(v => v.speed >= parseInt(minSpeed));
+        
+        filteredData = filtered;
+        updateStatistics();
+        renderTable();
+    }
+    
+    function resetFilter() {
+        document.getElementById('searchPlate').value = '';
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+        document.getElementById('minSpeed').value = '';
+        filteredData = [...violationsData];
+        updateStatistics();
+        renderTable();
+    }
+    
+    function refreshData() {
+        alert('Menyegarkan data dari server...');
+    }
+    
+    function exportData() {
+        if (filteredData.length === 0) {
+            alert('Tidak ada data untuk diexport');
+            return;
+        }
+        let csv = "No,Waktu,Lokasi,Plat Nomor,Kecepatan (km/h),Batas (km/h),Selisih\n";
+        filteredData.forEach((v, idx) => {
+            csv += `${idx + 1},${v.time},${v.location},${v.plate},${v.speed},${v.limit},+${v.diff}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pelanggaran_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert('Export data berhasil!');
+    }
+    
+    // ========================================
+    // FUNGSI MENERIMA DATA DARI ESP32-CAM
+    // ========================================
+    window.addViolation = function(data) {
+        // data = { plate, speed, location, photo (base64 atau url), timestamp }
+        const newViolation = {
+            id: violationsData.length + 1,
+            time: new Date().toLocaleString('id-ID'),
+            timestamp: Date.now(),
+            plate: data.plate,
+            speed: data.speed,
+            limit: speedLimit,
+            location: data.location || 'Tidak diketahui',
+            photo: data.photo || dummyImages[Math.floor(Math.random() * dummyImages.length)],
+            diff: data.speed - speedLimit
+        };
+        violationsData.unshift(newViolation);
+        filteredData = [...violationsData];
+        updateStatistics();
+        renderTable();
+        console.log(`🚨 Pelanggaran baru: ${data.plate} - ${data.speed} km/h`);
+        console.log(`📸 Foto bukti: ${data.photo ? 'Tersimpan' : 'Gunakan default'}`);
+    };
+    
+    renderTable();
+    console.log('🚨 HALAMAN PELANGGARAN SIAP - Menunggu data dari ESP32-CAM');
+    console.log('📡 Format data: addViolation({ plate: "B 1234 XYZ", speed: 85, location: "Jl. Sudirman", photo: "base64..." })');
+</script>
+</body>
+</html>
