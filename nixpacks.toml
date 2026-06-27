@@ -4,8 +4,13 @@ nixPkgs = [
   "php82Extensions.pdo",
   "php82Extensions.pdo_mysql",
   "php82Extensions.mysqli",
-  "php82Extensions.mysqlnd"
+  "php82Extensions.mysqlnd",
+  "python311",
+  "python311Packages.pip"
 ]
+
+[phases.install]
+cmds = ["pip install paho-mqtt requests"]
 
 [phases.build]
 cmds = ["echo 'Build complete'"]
