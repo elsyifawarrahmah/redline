@@ -1,6 +1,17 @@
 {
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "NIXPACKS",
+    "nixpacksPlan": {
+      "providers": ["python"],
+      "phases": {
+        "setup": {
+          "nixPkgs": ["python311", "python311Packages.pip"]
+        },
+        "install": {
+          "cmds": ["pip install paho-mqtt requests"]
+        }
+      }
+    }
   },
   "deploy": {
     "startCommand": "python3 mqtt_bridge.py"
