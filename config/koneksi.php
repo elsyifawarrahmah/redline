@@ -1,9 +1,12 @@
 <?php
-$host = getenv('MYSQLHOST') ?: 'mysql.railway.internal';
-$dbname = getenv('MYSQLDATABASE') ?: 'railway';
-$user = 'redline';
-$pass = 'Redline123!';
-$port = getenv('MYSQLPORT') ?: '3306';
+$url = getenv('MYSQL_URL') ?: 'mysql://root:Redline123!@hayabusa.proxy.rlwy.net:35462/railway';
+
+$parsed = parse_url($url);
+$host = $parsed['host'];
+$port = $parsed['port'] ?? 3306;
+$dbname = ltrim($parsed['path'], '/');
+$user = $parsed['user'];
+$pass = $parsed['pass'];
 
 try {
     $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $user, $pass, [
